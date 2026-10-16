@@ -18,8 +18,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // Customer endpoints: user login token
-        registry.addInterceptor(authInterceptor).addPathPatterns("/api/v1/orders", "/api/v1/orders/**");
+        // Customer and admin endpoints: user login token (admin endpoints also check the ADMIN role)
+        registry.addInterceptor(authInterceptor).addPathPatterns("/api/v1/orders", "/api/v1/orders/**",
+                "/api/v1/admin/orders", "/api/v1/admin/orders/**");
         // Service-to-service endpoints: shared internal token
         registry.addInterceptor(internalApiInterceptor).addPathPatterns("/internal/**");
     }

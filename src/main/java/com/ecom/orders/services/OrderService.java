@@ -95,6 +95,12 @@ public class OrderService {
         return orderRepo.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
+    /** Administrators: every customer's orders, optionally only those in one status */
+    @Transactional(readOnly = true)
+    public List<Order> getAllOrders(OrderStatus status) {
+        return status == null ? orderRepo.findAllByOrderByCreatedAtDesc() : orderRepo.findByStatusOrderByCreatedAtDesc(status);
+    }
+
     @Transactional(readOnly = true)
     public Order getOrder(Long id, Long userId) throws OrderNotFoundException {
         // Customers only see their own orders; others get the same 404 as a missing order

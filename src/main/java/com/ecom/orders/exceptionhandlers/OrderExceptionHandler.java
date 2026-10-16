@@ -2,6 +2,7 @@ package com.ecom.orders.exceptionhandlers;
 
 import com.ecom.common.dtos.ErrorDto;
 import com.ecom.orders.auth.AuthServiceUnavailableException;
+import com.ecom.orders.auth.ForbiddenException;
 import com.ecom.orders.auth.UnauthorizedException;
 import com.ecom.orders.clients.DownstreamServiceException;
 import com.ecom.orders.exceptions.InvalidOrderException;
@@ -34,6 +35,11 @@ public class OrderExceptionHandler {
     public ResponseEntity<ErrorDto> handleConcurrentModification(ObjectOptimisticLockingFailureException e) {
         return new ResponseEntity<>(new ErrorDto("Order was changed by another request; reload and try again"),
                 HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorDto> handleForbidden(ForbiddenException e) {
+        return new ResponseEntity<>(new ErrorDto(e.getMessage()), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(UnauthorizedException.class)
