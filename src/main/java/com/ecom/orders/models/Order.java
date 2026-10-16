@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -38,4 +39,7 @@ public class Order extends JpaBaseModel {
     private String paymentId;
     private long createdAt;
     private long updatedAt;
+    /** Optimistic lock: two concurrent status changes (e.g. two payments) cannot both succeed */
+    @Version
+    private Long version;
 }

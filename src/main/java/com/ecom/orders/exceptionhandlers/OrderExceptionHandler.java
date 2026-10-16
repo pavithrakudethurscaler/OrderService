@@ -9,6 +9,7 @@ import com.ecom.orders.exceptions.InvalidStatusTransitionException;
 import com.ecom.orders.exceptions.OrderNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -27,6 +28,12 @@ public class OrderExceptionHandler {
     @ExceptionHandler(InvalidStatusTransitionException.class)
     public ResponseEntity<ErrorDto> handleInvalidStatusTransition(InvalidStatusTransitionException e) {
         return new ResponseEntity<>(new ErrorDto(e.getMessage()), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorDto> handleConcurrentModification(ObjectOptimisticLockingFailureException e) {
+        return new ResponseEntity<>(new ErrorDto("Order was changed by another request; reload and try again"),
+                HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(UnauthorizedException.class)
