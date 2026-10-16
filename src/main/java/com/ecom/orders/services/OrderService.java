@@ -15,11 +15,13 @@ import com.ecom.orders.repos.OrderRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,14 +31,23 @@ public class OrderService {
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
     private static final int MAX_QUANTITY_PER_ITEM = 100;
 
+    /** Customer notification sent when an order reaches each status */
+    private static final Map<OrderStatus, String> NOTIFICATION_TYPES = Map.of(
+            OrderStatus.PAID, "ORDER_CONFIRMED",
+            OrderStatus.SHIPPED, "ORDER_SHIPPED",
+            OrderStatus.DELIVERED, "ORDER_DELIVERED",
+            OrderStatus.CANCELLED, "ORDER_CANCELLED");
+
     private final OrderRepo orderRepo;
     private final ProductClient productClient;
+    private final ApplicationEventPublisher eventPublisher;
     private final String currency;
 
-    public OrderService(OrderRepo orderRepo, ProductClient productClient,
+    public OrderService(OrderRepo orderRepo, ProductClient productClient, ApplicationEventPublisher eventPublisher,
                         @Value("${order.currency:INR}") String currency) {
         this.orderRepo = orderRepo;
         this.productClient = productClient;
+        this.eventPublisher = eventPublisher;
         this.currency = currency;
     }
 
@@ -143,6 +154,21 @@ public class OrderService {
                     "Order " + order.getId() + " cannot move from " + order.getStatus() + " to " + next);
         }
         changeStatus(order, next, note, System.currentTimeMillis());
+
+        String notificationType = NOTIFICATION_TYPES.get(next);
+        if (notificationType != null) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("orderId", order.getId());
+            data.put("userId", order.getUserId());
+            data.put("totalAmount", order.getTotalAmount());
+            data.put("currency", order.getCurrency());
+            if (note != null) {
+                data.put("note", note);
+            }
+            // Stable id, so a repeated status change can never notify the customer twice
+            eventPublisher.publishEvent(new OrderNotificationEvent(
+                    "order-" + order.getId() + "-" + next.name().toLowerCase(), notificationType, data));
+        }
     }
 
     private void changeStatus(Order order, OrderStatus status, String note, long now) {
